@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Profile {
+  id                  String      @id @default(cuid())
+  userId              String      @unique @map("user_id")
+  email               String      @unique
+  fullName            String?     @map("full_name")
+  isDispatcher        Boolean     @default(false) @map("is_dispatcher")
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  assignedEmergencies Emergency[] @relation("EmergencyAssignee")
+  createdEmergencies  Emergency[] @relation("EmergencyCreator")
+  createdResponders   Responder[] @relation("ResponderCreator")
+
+  @@map("profiles")
+}
+
+model Responder {
+  id          String               @id @default(cuid())
+  name        String
+  email       String
+  phone       String?
+  isActive    Boolean              @default(false) @map("is_active")
+  location    String?
+  skills      String[]             @default([])
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  createdBy   String?              @map("created_by")
+  emergencies EmergencyResponder[]
+  creator     Profile?             @relation("ResponderCreator", fields: [createdBy], references: [id])
+
+  @@map("responders")
+}
+
+model Emergency {
+  id          String               @id @default(cuid())
+  title       String
+  description String?
+  location    String
+  severity    String               @default("medium")
+  status      String               @default("open")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+  createdBy   String?              @map("created_by")
+  assignedTo  String?              @map("assigned_to")
+  assignee    Profile?             @relation("EmergencyAssignee", fields: [assignedTo], references: [id])
+  creator     Profile?             @relation("EmergencyCreator", fields: [createdBy], references: [id])
+  responders  EmergencyResponder[]
+
+  @@map("emergencies")
+}
+
+model EmergencyResponder {
+  id          String    @id @default(cuid())
+  emergencyId String    @map("emergency_id")
+  responderId String    @map("responder_id")
+  status      String    @default("pending")
+  assignedAt  DateTime  @default(now()) @map("assigned_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  emergency   Emergency @relation(fields: [emergencyId], references: [id], onDelete: Cascade)
+  responder   Responder @relation(fields: [responderId], references: [id], onDelete: Cascade)
+
+  @@unique([emergencyId, responderId])
+  @@map("emergency_responders")
+}
