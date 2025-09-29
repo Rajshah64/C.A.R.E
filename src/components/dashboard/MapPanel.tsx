@@ -1,220 +1,65 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { MapPin, AlertTriangle, Users, Activity } from "lucide-react";
+import { MapboxMap } from "./MapboxMap";
 import { Emergency, Responder } from "@/types/dashboard";
 
 interface MapPanelProps {
   emergencies: Emergency[];
   responders: Responder[];
   selectedEmergency: Emergency | null;
-  onEmergencySelect: (emergency: Emergency) => void;
-  onResponderSelect: (responder: Responder) => void;
+  onEmergencySelectAction: (emergency: Emergency) => void;
+  onResponderSelectAction: (responder: Responder) => void;
 }
 
 export function MapPanel({
   emergencies,
   responders,
   selectedEmergency,
-  onEmergencySelect,
-  onResponderSelect,
+  onEmergencySelectAction,
+  onResponderSelectAction,
 }: MapPanelProps) {
-  const [selectedResponder, setSelectedResponder] = useState<Responder | null>(
-    null
-  );
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN;
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "critical":
-      case "high":
-        return "text-red-600";
-      case "medium":
-        return "text-amber-500";
-      case "low":
-        return "text-green-500";
-      default:
-        return "text-gray-500";
-    }
-  };
-
-  const handleResponderClick = (responder: Responder) => {
-    setSelectedResponder(responder);
-    onResponderSelect(responder);
-  };
-
-  // Since we don't have actual map coordinates, we'll create a placeholder map view
-  return (
-    <Card className="h-full relative bg-gray-100">
-      {/* Map Placeholder */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <MapPin className="h-16 w-16 text-gray-400 mx-auto" />
+  if (!mapboxToken) {
+    return (
+      <div className="h-full flex items-center justify-center bg-gray-50 border rounded-lg">
+        <div className="text-center space-y-4 p-8">
+          <div className="text-6xl">🗺️</div>
           <div>
-            <p className="text-lg font-medium text-gray-600">
+            <p className="text-lg font-medium text-gray-700">
               Interactive Map View
             </p>
-            <p className="text-sm text-gray-500">
-              Map integration requires Mapbox API token
+            <p className="text-sm text-gray-500 mt-2">
+              Add your Mapbox token to enable real-time mapping
             </p>
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-xs text-blue-800 font-medium">
+                Setup Instructions:
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                1. Get free token at{" "}
+                <span className="font-mono">mapbox.com</span>
+              </p>
+              <p className="text-xs text-blue-700">
+                2. Add to <span className="font-mono">.env.local</span>:
+              </p>
+              <p className="text-xs text-blue-600 font-mono mt-1">
+                NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_token_here
+              </p>
+            </div>
           </div>
         </div>
       </div>
+    );
+  }
 
-      {/* Legend */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg p-4 z-10">
-        <h3 className="font-semibold text-sm mb-3">Legend</h3>
-        <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-600" />
-            <span className="text-xs">High Severity</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <span className="text-xs">Medium Severity</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-green-500" />
-            <span className="text-xs">Low Severity</span>
-          </div>
-          <div className="w-full my-2 border-t"></div>
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-green-600" />
-            <span className="text-xs">Active Responder</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Activity className="h-4 w-4 text-red-600" />
-            <span className="text-xs">Inactive Responder</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Stats Overlay */}
-      <div className="absolute bottom-4 left-4 bg-white rounded-lg shadow-lg p-4 z-10">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-xs text-gray-500">Active Incidents</p>
-            <p className="text-2xl font-bold">
-              {
-                emergencies.filter(
-                  (e) => e.status !== "closed" && e.status !== "resolved"
-                ).length
-              }
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-gray-500">Active Responders</p>
-            <p className="text-2xl font-bold">
-              {responders.filter((r) => r.isActive).length}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Emergency Markers (Simulated) */}
-      <div className="absolute inset-0 p-8">
-        <div className="relative h-full">
-          {emergencies.map((emergency, index) => {
-            // Simulate random positions for demo
-            const top = `${Math.random() * 70 + 10}%`;
-            const left = `${Math.random() * 70 + 10}%`;
-
-            return (
-              <div
-                key={emergency.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all ${
-                  selectedEmergency?.id === emergency.id
-                    ? "scale-125 z-20"
-                    : "hover:scale-110 z-10"
-                }`}
-                style={{ top, left }}
-                onClick={() => onEmergencySelect(emergency)}
-              >
-                <div className="relative">
-                  <AlertTriangle
-                    className={`h-6 w-6 ${getSeverityColor(
-                      emergency.severity
-                    )} drop-shadow-md`}
-                  />
-                  {selectedEmergency?.id === emergency.id && (
-                    <div className="absolute top-8 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-3 w-48 z-30">
-                      <p className="font-semibold text-sm truncate">
-                        {emergency.title}
-                      </p>
-                      <p className="text-xs text-gray-600">
-                        {emergency.location}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <Badge variant="outline" className="text-xs">
-                          {emergency.status}
-                        </Badge>
-                        {emergency.responders &&
-                          emergency.responders.length > 0 && (
-                            <span className="text-xs text-gray-500 flex items-center">
-                              <Users className="h-3 w-3 mr-1" />
-                              {emergency.responders.length}
-                            </span>
-                          )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-
-          {/* Responder Markers (Simulated) */}
-          {responders.map((responder, index) => {
-            // Simulate random positions for demo
-            const top = `${Math.random() * 70 + 10}%`;
-            const left = `${Math.random() * 70 + 10}%`;
-
-            return (
-              <div
-                key={responder.id}
-                className={`absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-all ${
-                  selectedResponder?.id === responder.id
-                    ? "scale-125 z-20"
-                    : "hover:scale-110 z-10"
-                }`}
-                style={{ top, left }}
-                onClick={() => handleResponderClick(responder)}
-              >
-                <div className="relative">
-                  <Activity
-                    className={`h-5 w-5 ${
-                      responder.isActive ? "text-green-600" : "text-red-600"
-                    } drop-shadow-md`}
-                  />
-                  {selectedResponder?.id === responder.id && (
-                    <div className="absolute top-6 left-1/2 transform -translate-x-1/2 bg-white rounded-lg shadow-lg p-3 w-48 z-30">
-                      <p className="font-semibold text-sm">{responder.name}</p>
-                      <p className="text-xs text-gray-600">{responder.email}</p>
-                      {responder.phone && (
-                        <p className="text-xs text-gray-600">
-                          {responder.phone}
-                        </p>
-                      )}
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {responder.skills.slice(0, 3).map((skill, idx) => (
-                          <Badge
-                            key={idx}
-                            variant="secondary"
-                            className="text-xs"
-                          >
-                            {skill}
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </Card>
+  return (
+    <MapboxMap
+      emergencies={emergencies}
+      responders={responders}
+      selectedEmergency={selectedEmergency}
+      onEmergencySelect={onEmergencySelectAction}
+      onResponderSelect={onResponderSelectAction}
+    />
   );
 }

@@ -76,12 +76,25 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { title, description, location, severity, status, assignedTo } = body;
+    const {
+      title,
+      description,
+      location,
+      latitude,
+      longitude,
+      severity,
+      status,
+      assignedTo,
+    } = body;
 
     const updateData: any = {};
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
     if (location !== undefined) updateData.location = location;
+    if (latitude !== undefined && longitude !== undefined) {
+      updateData.latitude = latitude ? parseFloat(latitude) : null;
+      updateData.longitude = longitude ? parseFloat(longitude) : null;
+    }
     if (severity !== undefined) updateData.severity = severity;
     if (status !== undefined) updateData.status = status;
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;

@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/utils/prisma";
 import { isUserDispatcher } from "@/utils/auth";
 import { corsHeaders, handleCors } from "@/lib/cors";
+import { findBestResponder } from "@/utils/geo";
 
 export async function GET(request: NextRequest) {
   const corsResponse = handleCors(request);
@@ -130,7 +131,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, location, severity, status } = body;
+    const {
+      title,
+      description,
+      location,
+      latitude,
+      longitude,
+      type = "general",
+      severity,
+      status,
+    } = body;
 
     const profile = await prisma.profile.findUnique({
       where: { userId: user.id },
@@ -146,21 +156,88 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Auto-assign responder if coordinates are available
+    let assignedResponderId = null;
+    let emergencyStatus = status || "open";
+
+    if (latitude && longitude) {
+      console.log("🔍 Auto-assignment: Emergency has coordinates", {
+        latitude,
+        longitude,
+        type,
+      });
+
+      // Get all active responders
+      const responders = await prisma.responder.findMany({
+        where: { isActive: true },
+        select: {
+          id: true,
+          latitude: true,
+          longitude: true,
+          skills: true,
+          isActive: true,
+        },
+      });
+
+      console.log("👥 Active responders found:", responders.length);
+
+      // Find best responder
+      const bestMatch = findBestResponder(
+        parseFloat(latitude),
+        parseFloat(longitude),
+        type,
+        responders
+      );
+
+      if (bestMatch) {
+        assignedResponderId = bestMatch.responder.id;
+        emergencyStatus = "assigned";
+        console.log("✅ Auto-assigned responder:", {
+          responderId: assignedResponderId,
+          distance: bestMatch.distance,
+        });
+      } else {
+        console.log("❌ No suitable responder found for auto-assignment");
+      }
+    }
+
     const emergency = await prisma.emergency.create({
       data: {
         title,
         description,
         location,
+        type,
+        ...(latitude && longitude
+          ? {
+              latitude: parseFloat(latitude),
+              longitude: parseFloat(longitude),
+            }
+          : {}),
         severity: severity || "medium",
-        status: status || "open",
+        status: emergencyStatus,
+        assignedResponder: assignedResponderId,
         createdBy: profile.id,
       },
       include: {
         creator: {
           select: { fullName: true, email: true },
         },
+        assignedResponderProfile: {
+          select: { id: true, name: true, email: true, phone: true },
+        },
       },
     });
+
+    // If responder was auto-assigned, create the assignment relationship
+    if (assignedResponderId) {
+      await prisma.emergencyResponder.create({
+        data: {
+          emergencyId: emergency.id,
+          responderId: assignedResponderId,
+          status: "assigned",
+        },
+      });
+    }
 
     return NextResponse.json(emergency, {
       headers: corsHeaders(),

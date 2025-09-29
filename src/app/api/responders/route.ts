@@ -138,7 +138,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, email, phone, location, skills, isActive } = body;
+    const {
+      name,
+      email,
+      phone,
+      location,
+      latitude,
+      longitude,
+      skills,
+      isActive,
+    } = body;
 
     const profile = await prisma.profile.findUnique({
       where: { userId: user.id },
@@ -160,6 +169,12 @@ export async function POST(request: NextRequest) {
         email,
         phone,
         location,
+        ...(latitude && longitude
+          ? {
+              latitude: parseFloat(latitude),
+              longitude: parseFloat(longitude),
+            }
+          : {}),
         skills: skills || [],
         isActive: isActive ?? false,
         createdBy: profile.id,

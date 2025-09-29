@@ -3,13 +3,23 @@ export interface Emergency {
   title: string;
   description?: string;
   location: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  type: string;
   severity: string;
   status: string;
+  assignedResponder?: string | null;
   createdAt: string;
   updatedAt: string;
   assignee?: {
     fullName: string | null;
     email: string;
+  };
+  assignedResponderProfile?: {
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
   };
   responders?: Array<{
     responder: {
@@ -26,6 +36,8 @@ export interface Responder {
   phone?: string;
   isActive: boolean;
   location?: string;
+  latitude?: number | null;
+  longitude?: number | null;
   skills: string[];
 }
 

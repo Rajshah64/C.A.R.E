@@ -3,110 +3,187 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting database seed...");
+  console.log("🌱 Starting database seeding...");
 
-  // Create sample profiles
+  // Create system dispatcher profile
   const dispatcherProfile = await prisma.profile.upsert({
-    where: { email: "dispatcher@example.com" },
+    where: { userId: "system" },
     update: {},
     create: {
-      userId: "dispatcher-user-id",
-      email: "dispatcher@example.com",
-      fullName: "John Dispatcher",
+      userId: "system",
+      fullName: "System Dispatcher",
+      email: "dispatcher@system.com",
       isDispatcher: true,
     },
   });
 
-  const userProfile = await prisma.profile.upsert({
-    where: { email: "user@example.com" },
-    update: {},
-    create: {
-      userId: "user-id",
-      email: "user@example.com",
-      fullName: "Jane User",
-      isDispatcher: false,
-    },
-  });
+  console.log("✅ Created dispatcher profile");
 
-  console.log("✅ Created profiles");
-
-  // Create sample responders
+  // Create responders
   const responders = await Promise.all([
-    prisma.responder.upsert({
-      where: { email: "responder1@example.com" },
-      update: {},
-      create: {
-        name: "Alice Johnson",
-        email: "responder1@example.com",
-        phone: "+1234567890",
-        isActive: true,
-        location: "Downtown",
-        skills: ["First Aid", "Fire Safety", "Search & Rescue"],
-        createdBy: dispatcherProfile.id,
-      },
-    }),
-    prisma.responder.upsert({
-      where: { email: "responder2@example.com" },
-      update: {},
-      create: {
-        name: "Bob Smith",
-        email: "responder2@example.com",
-        phone: "+1234567891",
-        isActive: true,
-        location: "Uptown",
-        skills: ["Medical Emergency", "Trauma Care"],
-        createdBy: dispatcherProfile.id,
-      },
-    }),
-    prisma.responder.upsert({
-      where: { email: "responder3@example.com" },
-      update: {},
-      create: {
-        name: "Charlie Brown",
-        email: "responder3@example.com",
-        phone: "+1234567892",
-        isActive: false,
-        location: "Suburbs",
-        skills: ["Water Rescue", "Emergency Response"],
-        createdBy: dispatcherProfile.id,
-      },
-    }),
+    (async () => {
+      const existing = await prisma.responder.findFirst({
+        where: { email: "inspector.rajesh@mumbai.gov.in" },
+      });
+      if (existing) return existing;
+      return prisma.responder.create({
+        data: {
+          name: "Inspector Rajesh Kumar",
+          email: "inspector.rajesh@mumbai.gov.in",
+          phone: "+91-98765-43210",
+          skills: "Police",
+          location: "Mumbai Police Station, Colaba",
+          latitude: 18.922,
+          longitude: 72.8347,
+          isActive: true,
+        },
+      });
+    })(),
+    (async () => {
+      const existing = await prisma.responder.findFirst({
+        where: { email: "dr.priya@mumbai.gov.in" },
+      });
+      if (existing) return existing;
+      return prisma.responder.create({
+        data: {
+          name: "Dr. Priya Sharma",
+          email: "dr.priya@mumbai.gov.in",
+          phone: "+91-98765-43211",
+          skills: "Ambulance",
+          location: "KEM Hospital, Parel",
+          latitude: 19.002,
+          longitude: 72.841,
+          isActive: true,
+        },
+      });
+    })(),
+    (async () => {
+      const existing = await prisma.responder.findFirst({
+        where: { email: "fire.captain@mumbai.gov.in" },
+      });
+      if (existing) return existing;
+      return prisma.responder.create({
+        data: {
+          name: "Fire Captain Arjun Singh",
+          email: "fire.captain@mumbai.gov.in",
+          phone: "+91-98765-43212",
+          skills: "Fire Brigade",
+          location: "Mumbai Fire Station, Andheri",
+          latitude: 19.1136,
+          longitude: 72.8697,
+          isActive: true,
+        },
+      });
+    })(),
+    (async () => {
+      const existing = await prisma.responder.findFirst({
+        where: { email: "constable.suresh@mumbai.gov.in" },
+      });
+      if (existing) return existing;
+      return prisma.responder.create({
+        data: {
+          name: "Constable Suresh Patel",
+          email: "constable.suresh@mumbai.gov.in",
+          phone: "+91-98765-43213",
+          skills: "Police",
+          location: "Bandra Police Station",
+          latitude: 19.0544,
+          longitude: 72.8406,
+          isActive: false,
+        },
+      });
+    })(),
+    (async () => {
+      const existing = await prisma.responder.findFirst({
+        where: { email: "paramedic.anita@mumbai.gov.in" },
+      });
+      if (existing) return existing;
+      return prisma.responder.create({
+        data: {
+          name: "Paramedic Anita Desai",
+          email: "paramedic.anita@mumbai.gov.in",
+          phone: "+91-98765-43214",
+          skills: "Ambulance",
+          location: "Sion Hospital",
+          latitude: 19.039,
+          longitude: 72.857,
+          isActive: true,
+        },
+      });
+    })(),
   ]);
 
   console.log("✅ Created responders");
 
-  // Create sample emergencies
+  // Create sample emergencies (will be auto-assigned)
   const emergencies = await Promise.all([
     prisma.emergency.create({
       data: {
-        title: "Fire Emergency - Downtown Building",
+        title: "Fire at High-Rise Building - Nariman Point",
         description:
-          "Reported fire in a 5-story office building. Multiple people trapped.",
-        location: "123 Main St, Downtown",
+          "Major fire reported in 15-story commercial building. Multiple people trapped on upper floors. Fire brigade and police deployed.",
+        location: "Nariman Point, Mumbai",
+        latitude: 18.922,
+        longitude: 72.8347,
+        type: "fire",
         severity: "high",
-        status: "open",
+        status: "open", // Will be auto-assigned
         createdBy: dispatcherProfile.id,
       },
     }),
     prisma.emergency.create({
       data: {
-        title: "Medical Emergency - Park",
+        title: "Road Accident on Western Express Highway",
         description:
-          "Person collapsed in Central Park. Requires immediate medical attention.",
-        location: "Central Park, Uptown",
-        severity: "critical",
-        status: "assigned",
+          "Multi-vehicle collision involving 3 cars and 1 bus. Multiple casualties reported. Ambulance and police required immediately.",
+        location: "Western Express Highway, Andheri",
+        latitude: 19.1136,
+        longitude: 72.8697,
+        type: "medical",
+        severity: "high",
+        status: "open", // Will be auto-assigned
         createdBy: dispatcherProfile.id,
-        assignedTo: dispatcherProfile.id,
       },
     }),
     prisma.emergency.create({
       data: {
-        title: "Traffic Accident - Highway",
-        description: "Multi-vehicle accident on Highway 101. Road blocked.",
-        location: "Highway 101, Mile Marker 15",
+        title: "Gas Cylinder Explosion - Dharavi",
+        description:
+          "LPG cylinder explosion in slum area. Fire spreading to nearby structures. Evacuation in progress.",
+        location: "Dharavi, Mumbai",
+        latitude: 19.006,
+        longitude: 72.841,
+        type: "fire",
+        severity: "high",
+        status: "open", // Will be auto-assigned
+        createdBy: dispatcherProfile.id,
+      },
+    }),
+    prisma.emergency.create({
+      data: {
+        title: "Heart Attack - Marine Drive",
+        description:
+          "Elderly person collapsed while walking on Marine Drive. Requires immediate medical attention.",
+        location: "Marine Drive, Mumbai",
+        latitude: 18.943,
+        longitude: 72.826,
+        type: "medical",
         severity: "medium",
-        status: "resolved",
+        status: "open", // Will be auto-assigned
+        createdBy: dispatcherProfile.id,
+      },
+    }),
+    prisma.emergency.create({
+      data: {
+        title: "Building Collapse - Construction Site",
+        description:
+          "Under-construction building collapsed in Powai. Multiple construction workers trapped under debris.",
+        location: "Powai, Mumbai",
+        latitude: 19.1197,
+        longitude: 72.9064,
+        type: "general",
+        severity: "high",
+        status: "open", // Will be auto-assigned
         createdBy: dispatcherProfile.id,
       },
     }),
@@ -114,35 +191,12 @@ async function main() {
 
   console.log("✅ Created emergencies");
 
-  // Create emergency-responder assignments
-  await prisma.emergencyResponder.createMany({
-    data: [
-      {
-        emergencyId: emergencies[0].id,
-        responderId: responders[0].id,
-        status: "accepted",
-      },
-      {
-        emergencyId: emergencies[1].id,
-        responderId: responders[1].id,
-        status: "accepted",
-      },
-      {
-        emergencyId: emergencies[2].id,
-        responderId: responders[2].id,
-        status: "completed",
-      },
-    ],
-  });
-
-  console.log("✅ Created emergency-responder assignments");
-
-  console.log("🎉 Database seeded successfully!");
+  console.log("🎉 Database seeding completed successfully!");
 }
 
 main()
   .catch((e) => {
-    console.error("❌ Error seeding database:", e);
+    console.error("❌ Error during seeding:", e);
     process.exit(1);
   })
   .finally(async () => {

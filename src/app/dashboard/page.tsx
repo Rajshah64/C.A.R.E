@@ -13,7 +13,8 @@ import {
 } from "@/components/dashboard/EmergencyDialog";
 import { AssignResponderDialog } from "@/components/dashboard/AssignResponderDialog";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, User as UserIcon } from "lucide-react";
+import Link from "next/link";
 import { Emergency, Responder, UserProfile } from "@/types/dashboard";
 
 export default function DashboardPage() {
@@ -56,10 +57,11 @@ export default function DashboardPage() {
       const response = await fetch("/api/emergencies");
       if (response.ok) {
         const data = await response.json();
-        setEmergencies(data);
+        setEmergencies(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Error fetching emergencies:", error);
+      setEmergencies([]);
     }
   };
 
@@ -68,10 +70,11 @@ export default function DashboardPage() {
       const response = await fetch("/api/responders");
       if (response.ok) {
         const data = await response.json();
-        setResponders(data);
+        setResponders(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error("Error fetching responders:", error);
+      setResponders([]);
     }
   };
 
@@ -248,7 +251,7 @@ export default function DashboardPage() {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white shadow-sm border-b flex-shrink-0 z-20">
         <div className="px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
@@ -267,11 +270,21 @@ export default function DashboardPage() {
                   </span>
                 )}
               </div>
+              <Link href="/responder">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-blue-600 hover:text-blue-700"
+                >
+                  <UserIcon className="h-4 w-4 mr-1" />
+                  Responder View
+                </Button>
+              </Link>
               <Button
                 onClick={handleSignOut}
                 variant="outline"
                 size="sm"
-                className="text-red-600 hover:text-red-700"
+                className="text-red-600 hover:text-red-700 z-30"
               >
                 <LogOut className="h-4 w-4 mr-1" />
                 Sign Out
@@ -281,10 +294,10 @@ export default function DashboardPage() {
         </div>
       </nav>
 
-      {/* Main Content */}
+      {/* Main Content Area */}
       <div className="flex-1 flex overflow-hidden">
         {/* Sidebar */}
-        <div className="w-80 flex-shrink-0">
+        <div className="w-80 flex-shrink-0 border-r bg-white flex flex-col">
           <Sidebar
             emergencies={emergencies}
             onEmergencySelect={handleEmergencySelect}
@@ -295,28 +308,31 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Map Panel */}
-        <div className="flex-1 p-4">
-          <MapPanel
-            emergencies={emergencies}
-            responders={responders}
-            selectedEmergency={selectedEmergency}
-            onEmergencySelect={handleEmergencySelect}
-            onResponderSelect={handleResponderSelect}
-          />
-        </div>
-      </div>
+        {/* Map and Bottom Panel Container */}
+        <div className="flex-1 flex flex-col min-h-0">
+          {/* Map Panel */}
+          <div className="flex-1 p-4 min-h-0">
+            <MapPanel
+              emergencies={emergencies}
+              responders={responders}
+              selectedEmergency={selectedEmergency}
+              onEmergencySelectAction={handleEmergencySelect}
+              onResponderSelectAction={handleResponderSelect}
+            />
+          </div>
 
-      {/* Bottom Panel */}
-      <div className="h-32">
-        <BottomPanel emergencies={emergencies} responders={responders} />
+          {/* Bottom Panel */}
+          <div className="flex-shrink-0 border-t bg-white max-h-48 overflow-y-auto">
+            <BottomPanel emergencies={emergencies} responders={responders} />
+          </div>
+        </div>
       </div>
 
       {/* Dialogs */}
       <EmergencyDialog
         open={emergencyDialogOpen}
-        onOpenChange={setEmergencyDialogOpen}
-        onSubmit={handleEmergencySubmit}
+        onOpenChangeAction={setEmergencyDialogOpen}
+        onSubmitAction={handleEmergencySubmit}
         emergency={editingEmergency || undefined}
       />
 

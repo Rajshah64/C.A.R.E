@@ -75,9 +75,8 @@ export function Sidebar({
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case "critical":
       case "high":
-        return "bg-red-600";
+        return "bg-red-500";
       case "medium":
         return "bg-amber-500";
       case "low":
@@ -149,7 +148,6 @@ export function Sidebar({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All severities</SelectItem>
-                <SelectItem value="critical">Critical</SelectItem>
                 <SelectItem value="high">High</SelectItem>
                 <SelectItem value="medium">Medium</SelectItem>
                 <SelectItem value="low">Low</SelectItem>
@@ -179,8 +177,8 @@ export function Sidebar({
       </div>
 
       {/* Incident List */}
-      <ScrollArea className="flex-1">
-        <div className="p-2">
+      <ScrollArea className="flex-1 h-0">
+        <div className="p-2 space-y-2">
           {filteredEmergencies.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <AlertCircle className="h-8 w-8 mx-auto mb-2 text-gray-400" />
@@ -223,13 +221,21 @@ export function Sidebar({
                         )}
                     </div>
 
-                    {emergency.assignee && (
-                      <p className="text-xs text-gray-600">
-                        Assigned to:{" "}
-                        {emergency.assignee.fullName ||
-                          emergency.assignee.email}
+                    {emergency.assignedResponderProfile && (
+                      <p className="text-xs text-blue-600 font-medium">
+                        Auto-assigned to:{" "}
+                        {emergency.assignedResponderProfile.name}
                       </p>
                     )}
+
+                    {emergency.assignee &&
+                      !emergency.assignedResponderProfile && (
+                        <p className="text-xs text-gray-600">
+                          Assigned to:{" "}
+                          {emergency.assignee.fullName ||
+                            emergency.assignee.email}
+                        </p>
+                      )}
 
                     <p className="text-xs text-gray-500 line-clamp-1">
                       {emergency.location}

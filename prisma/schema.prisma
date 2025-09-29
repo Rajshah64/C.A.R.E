@@ -24,36 +24,46 @@ model Profile {
 }
 
 model Responder {
-  id          String               @id @default(cuid())
-  name        String
-  email       String
-  phone       String?
-  isActive    Boolean              @default(false) @map("is_active")
-  location    String?
-  skills      String[]             @default([])
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-  createdBy   String?              @map("created_by")
-  emergencies EmergencyResponder[]
-  creator     Profile?             @relation("ResponderCreator", fields: [createdBy], references: [id])
+  id                  String               @id @default(cuid())
+  name                String
+  email               String               @unique
+  phone               String?
+  isActive            Boolean              @default(false) @map("is_active")
+  location            String?
+  latitude            Float?
+  longitude           Float?
+  skills              String[]             @default([])
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+  createdBy           String?              @map("created_by")
+  emergencies         EmergencyResponder[]
+  assignedEmergencies Emergency[]          @relation("EmergencyAssignedResponder")
+  creator             Profile?             @relation("ResponderCreator", fields: [createdBy], references: [id])
 
   @@map("responders")
 }
 
 model Emergency {
-  id          String               @id @default(cuid())
-  title       String
-  description String?
-  location    String
-  severity    String               @default("medium")
-  status      String               @default("open")
-  createdAt   DateTime             @default(now()) @map("created_at")
-  updatedAt   DateTime             @updatedAt @map("updated_at")
-  createdBy   String?              @map("created_by")
-  assignedTo  String?              @map("assigned_to")
-  assignee    Profile?             @relation("EmergencyAssignee", fields: [assignedTo], references: [id])
-  creator     Profile?             @relation("EmergencyCreator", fields: [createdBy], references: [id])
-  responders  EmergencyResponder[]
+  id                String   @id @default(cuid())
+  title             String
+  description       String?
+  location          String
+  latitude          Float?
+  longitude         Float?
+  type              String   @default("general") // fire, medical, police, general
+  severity          String   @default("medium")
+  status            String   @default("open")
+  assignedResponder String?  @map("assigned_responder")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdBy         String?  @map("created_by")
+  assignedTo        String?  @map("assigned_to")
+
+  // Relations
+  creator                  Profile?             @relation("EmergencyCreator", fields: [createdBy], references: [id])
+  assignee                 Profile?             @relation("EmergencyAssignee", fields: [assignedTo], references: [id])
+  assignedResponderProfile Responder?           @relation("EmergencyAssignedResponder", fields: [assignedResponder], references: [id])
+  responders               EmergencyResponder[]
 
   @@map("emergencies")
 }

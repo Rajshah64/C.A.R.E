@@ -20,12 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, MapPin, Loader2 } from "lucide-react";
+import { geocodeAddress } from "@/utils/geocoding";
 
 interface EmergencyDialogProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (data: EmergencyFormData) => void;
+  onOpenChangeAction: (open: boolean) => void;
+  onSubmitAction: (data: EmergencyFormData) => void;
   emergency?: {
     id: string;
     title: string;
@@ -40,37 +41,77 @@ export interface EmergencyFormData {
   title: string;
   description: string;
   location: string;
+  latitude?: number;
+  longitude?: number;
+  type: string;
   severity: string;
   status: string;
 }
 
 export function EmergencyDialog({
   open,
-  onOpenChange,
-  onSubmit,
+  onOpenChangeAction,
+  onSubmitAction,
   emergency,
 }: EmergencyDialogProps) {
   const [formData, setFormData] = useState<EmergencyFormData>({
     title: emergency?.title || "",
     description: emergency?.description || "",
     location: emergency?.location || "",
+    latitude: undefined,
+    longitude: undefined,
+    type: "general",
     severity: emergency?.severity || "medium",
     status: emergency?.status || "open",
   });
   const [loading, setLoading] = useState(false);
+  const [geocoding, setGeocoding] = useState(false);
+
+  const handleGeocode = async () => {
+    if (!formData.location.trim()) return;
+
+    setGeocoding(true);
+    try {
+      const result = await geocodeAddress(formData.location);
+      if (result) {
+        setFormData((prev) => ({
+          ...prev,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          location: result.formattedAddress, // Use the formatted address
+        }));
+      }
+    } catch (error) {
+      console.error("Geocoding error:", error);
+    } finally {
+      setGeocoding(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await onSubmit(formData);
-      onOpenChange(false);
+      // If no coordinates, try to geocode first
+      if (!formData.latitude || !formData.longitude) {
+        const result = await geocodeAddress(formData.location);
+        if (result) {
+          formData.latitude = result.latitude;
+          formData.longitude = result.longitude;
+          formData.location = result.formattedAddress;
+        }
+      }
+
+      await onSubmitAction(formData);
+      onOpenChangeAction(false);
       // Reset form if creating new
       if (!emergency) {
         setFormData({
           title: "",
           description: "",
           location: "",
+          latitude: undefined,
+          longitude: undefined,
           severity: "medium",
           status: "open",
         });
@@ -83,7 +124,7 @@ export function EmergencyDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChangeAction}>
       <DialogContent className="sm:max-w-[525px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
@@ -126,15 +167,61 @@ export function EmergencyDialog({
 
             <div className="grid gap-2">
               <Label htmlFor="location">Location *</Label>
-              <Input
-                id="location"
-                value={formData.location}
-                onChange={(e) =>
-                  setFormData({ ...formData, location: e.target.value })
+              <div className="flex gap-2">
+                <Input
+                  id="location"
+                  value={formData.location}
+                  onChange={(e) =>
+                    setFormData({ ...formData, location: e.target.value })
+                  }
+                  placeholder="e.g., Gateway of India, Mumbai"
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleGeocode}
+                  disabled={geocoding || !formData.location.trim()}
+                  title="Get coordinates from address"
+                >
+                  {geocoding ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <MapPin className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+              {formData.latitude && formData.longitude && (
+                <p className="text-xs text-green-600">
+                  ✓ Coordinates: {formData.latitude.toFixed(4)},{" "}
+                  {formData.longitude.toFixed(4)}
+                </p>
+              )}
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="type">Emergency Type *</Label>
+              <Select
+                value={formData.type}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, type: value })
                 }
-                placeholder="e.g., 123 Main St, Downtown"
-                required
-              />
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select emergency type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="fire">Fire Emergency</SelectItem>
+                  <SelectItem value="medical">Medical Emergency</SelectItem>
+                  <SelectItem value="police">Police Emergency</SelectItem>
+                  <SelectItem value="general">General Emergency</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-gray-500">
+                Select the type of emergency. This helps auto-assign the most
+                appropriate responder.
+              </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -153,7 +240,6 @@ export function EmergencyDialog({
                     <SelectItem value="low">Low</SelectItem>
                     <SelectItem value="medium">Medium</SelectItem>
                     <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="critical">Critical</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -185,7 +271,7 @@ export function EmergencyDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() => onOpenChange(false)}
+              onClick={() => onOpenChangeAction(false)}
               disabled={loading}
             >
               Cancel
